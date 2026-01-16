@@ -165,11 +165,75 @@ def one_to_m_tradeoffs(data, pros, cons):
     
     return result
 
+def m_to_one_tradeoffs(data, pros, cons):
+    """
+    Optimization with Gurobi to find many-to-one tradeoffs between pros and cons.
+    
+    Args:
+        data: dictionary with keys and their contributions
+        pros: list of keys with positive contribution
+        cons: list of keys with negative contribution
+        
+    Returns:
+        list: list of tuples (tuple of pro_keys, con_key) for selected pairs,
+              or 'certificate of non-existence' if the problem is infeasible
+    """
+    # Create the model
+    model = gp.Model("m_to_1_tradeoffs")
+    model.setParam('OutputFlag', 0)  # Disable Gurobi logs
+    
+    # Binary variables a_ij
+    a = {}
+    for i in range(len(pros)):
+        for j in range(len(cons)):
+            a[i, j] = model.addVar(vtype=GRB.BINARY, name=f"a_{i}_{j}")
+    
+    # Constraint C1: for fixed i, sum over j of a_ij <= 1
+    for i in range(len(pros)):
+        model.addConstr(gp.quicksum(a[i, j] for j in range(len(cons))) <= 1, name=f"C1_{i}")
+    
+    # Constraint C2: for fixed j, sum over i of a_ij * data[pros[i]] + data[cons[j]] >= 0
+    for j in range(len(cons)):
+        model.addConstr(
+            gp.quicksum(a[i, j] * data[pros[i]] for i in range(len(pros))) + data[cons[j]] >= 0,
+            name=f"C2_{j}"
+        )
+    
+    # Objective function: max sum over i and j of a_ij * (data[pros[i]] + data[cons[j]])
+    model.setObjective(
+        gp.quicksum(a[i, j] * (data[pros[i]] + data[cons[j]]) 
+                   for i in range(len(pros)) 
+                   for j in range(len(cons))),
+        GRB.MAXIMIZE
+    )
+    
+    # Optimize
+    model.optimize()
+    
+    # Check solution status
+    if model.status == GRB.INFEASIBLE or model.status == GRB.INF_OR_UNBD:
+        return 'certificate of non-existence'
+    
+    # Extract pairs grouped by con_key: [(('A','B','C'), 'D'), (('E',), 'F')]
+    result = []
+    for j in range(len(cons)):
+        pro_keys = []
+        for i in range(len(pros)):
+            if a[i, j].x > 0.5:  # Binary variable, check if close to 1
+                pro_keys.append(pros[i])
+        if pro_keys:  # Only add if there are pros associated with this con
+            # Always return a tuple, even for a single element
+            result.append((tuple(pro_keys), cons[j]))
+    
+    return result
+
 
 if __name__ == "__main__":
     #data = {'A': 32,'B':0,'C':-28,'D':36,'E':48,'F':-35,'G':-42}
-    data = {'A': 22,'B':-2,'C':-5,'D':0,'E':-15,'F':-2,'G':2}
-    #data= {'A':8,'B':14,'C':21,'D':-42,'E':-72,'F':-65,'G':-0}
+    #data = {'A': 22,'B':-2,'C':-5,'D':0,'E':-15,'F':-2,'G':2}
+    #data= {'A':8,'B':14,'C':21,'D':-42,'E':72,'F':-65,'G':0} # u > v
+    data = {'A':7*7,'B':-8*7,'C':7,'D':-8*6,'E':-6,'F':4*5,'G':16*6} # y > z
+    #data= {'A':0,'B':126,'C':-70,'D':-60,'E':54,'F':-40,'G':36} # z > t
 
     pros, cons, neutral = preprocess_data(data)
 
@@ -184,6 +248,10 @@ if __name__ == "__main__":
     # Question 2
     result_q2 = one_to_m_tradeoffs(data, pros, cons)
     print(f"Result one_to_m_tradeoffs: {result_q2}")
+
+    # Question 3
+    result_q3 = m_to_one_tradeoffs(data, pros, cons)
+    print(f"Result m_to_one_tradeoffs: {result_q3}")
 
 
 
