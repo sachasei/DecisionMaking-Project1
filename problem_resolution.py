@@ -169,6 +169,7 @@ def one_to_m_tradeoffs(data, pros, cons):
 if __name__ == "__main__":
     #data = {'A': 32,'B':0,'C':-28,'D':36,'E':48,'F':-35,'G':-42}
     data = {'A': 22,'B':-2,'C':-5,'D':0,'E':-15,'F':-2,'G':2}
+    #data= {'A':8,'B':14,'C':21,'D':-42,'E':-72,'F':-65,'G':-0}
 
     pros, cons, neutral = preprocess_data(data)
 
