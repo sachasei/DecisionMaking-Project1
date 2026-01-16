@@ -1,0 +1,11 @@
+Metro station;peak-entering-passengers/h;peak-passing-passengers/h;off-peak-entering-passengers/h;off-peak-passing-passengers/h;strategic priority [0,10];Station degradation level ([0,20]  scale);connectivity index [0,100];Score_Final
+Odéon (Ligne 4);85000;8100;35500;3450;75;16.2;88;9484.276600000001
+Place d'Italie (Lign 6);81000;8100;37500;3150;67;17.6;95;9457.608800000002
+Jussieu (Ligne 7);74000;8900;37000;4050;68;16.8;79;9436.2024
+Nation (Ligne 9);74000;7100;42000;4550;77;15.2;73;9389.6816
+La Motte Picquet-Grenelle (Ligne 10);72000;7500;33000;4250;88;13.2;93;9349.7596
+Porte d'Orléans (Ligne 4);71000;7300;31500;4600;76;15.8;93;9328.0474
+Reuilly-Diderot (Ligne 1);72000;8700;36000;4000;66;16.6;78;9240.693800000001
+Oberkampf (Ligne 9);84000;7900;34000;3300;74;15.8;85;9229.0074
+Daumenil (Ligne 6);79000;6900;39000;3800;67;16.8;79;9144.5784
+Vaugirard (Ligne 12);57000;7600;40500;3800;82;17.2;77;9107.6636
