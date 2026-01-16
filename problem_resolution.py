@@ -1,6 +1,7 @@
 import gurobipy as gp
 from gurobipy import GRB
 
+
 def preprocess_data(data):
     """
     Preprocessing function that classifies keys according to their contribution.
@@ -227,13 +228,81 @@ def m_to_one_tradeoffs(data, pros, cons):
     
     return result
 
+def m_to_one_or_one_to_m_tradeoffs(data, pros, cons):
+    # Initialisation du modèle
+    model = gp.Model("Explanation_L3_Robust")
+    model.setParam('OutputFlag', 0)  # Désactive les logs
+
+    # Ensembles d'indices et constante Big-M pour les scores élevés
+    I, J = pros, cons
+    N_star = I + J
+    # M_val doit être supérieur à la somme absolue des contributions 
+    M_val = sum(abs(v) for v in data.values()) + 100 
+
+    # Variables de décision (Appendice A) [cite: 705-709]
+    u = model.addVars(I, J, vtype=GRB.BINARY, name="u")  # Pro i couvre Con j (1-vs-m)
+    v = model.addVars(I, J, vtype=GRB.BINARY, name="v")  # Con j couvert par Pros i (m-vs-1)
+    t = model.addVars(N_star, vtype=GRB.BINARY, name="t") # Pivot de l'argument
+    e = model.addVar(vtype=GRB.BINARY, name="e")         # Indicateur d'existence
+
+    # 1. Contraintes de structure (Partitionnement) [cite: 711-714]
+    for i in I:
+        for j in J:
+            model.addConstr(u[i, j] <= t[i]) # u_ij n'existe que si i est pivot
+            model.addConstr(v[i, j] <= t[j]) # v_ij n'existe que si j est pivot
+
+    for i in I:
+        # Un pro est soit pivot d'un 1-vs-m, soit membre d'un m-vs-1 [cite: 713]
+        model.addConstr(gp.quicksum(v[i, j] for j in J) + t[i] <= 1)
+
+    for j in J:
+        # Chaque con est soit pivot d'un m-vs-1, soit couvert par un 1-vs-m [cite: 714]
+        model.addConstr(gp.quicksum(u[i, j] for i in I) + t[j] == e)
+
+    # 2. Contraintes d'alignement avec Big-M (Version corrigée de A.7/A.8) [cite: 758-759]
+    # Un argument n'est validé que si sa force totale est >= 0
+    for i in I:
+        # Type 1-vs-m : Pro i + somme des Cons j associés
+        strength_1m = data[i] + gp.quicksum(data[j] * u[i, j] for j in J)
+        model.addConstr(strength_1m >= -M_val * (1 - t[i]) - M_val * (1 - e))
+
+    for j in J:
+        # Type m-vs-1 : Con j + somme des Pros i associés
+        strength_m1 = data[j] + gp.quicksum(data[i] * v[i, j] for i in I)
+        model.addConstr(strength_m1 >= -M_val * (1 - t[j]) - M_val * (1 - e))
+
+    # 3. Objectif : Maximiser l'existence, puis minimiser le nombre de pivots (groupes) [cite: 760]
+    # Minimiser t_k permet d'avoir des explications plus courtes et concises [cite: 382, 500]
+    model.setObjective(1000 * e - gp.quicksum(t[k] for k in N_star), GRB.MAXIMIZE)
+
+    model.optimize()
+
+    if e.X < 0.5:
+        return None  # Certificat de non-existence [cite: 34, 709]
+
+    # Extraction et formatage selon votre exemple
+    results = []
+    for i in I:
+        if t[i].X > 0.5:
+            covered_cons = tuple(sorted([j for j in J if u[i, j].X > 0.5]))
+            # Format: ((Pro,), (Cons,)) ou ((Pro,), Con)
+            res_cons = covered_cons[0] if len(covered_cons) == 1 else covered_cons
+            results.append(((i,), res_cons))
+            
+    for j in J:
+        if t[j].X > 0.5:
+            covering_pros = tuple(sorted([i for i in I if v[i, j].X > 0.5]))
+            results.append((covering_pros, j))
+
+    return results
+
 
 if __name__ == "__main__":
     #data = {'A': 32,'B':0,'C':-28,'D':36,'E':48,'F':-35,'G':-42}
     #data = {'A': 22,'B':-2,'C':-5,'D':0,'E':-15,'F':-2,'G':2}
     #data= {'A':8,'B':14,'C':21,'D':-42,'E':72,'F':-65,'G':0} # u > v
-    data = {'A':7*7,'B':-8*7,'C':7,'D':-8*6,'E':-6,'F':4*5,'G':16*6} # y > z
-    #data= {'A':0,'B':126,'C':-70,'D':-60,'E':54,'F':-40,'G':36} # z > t
+    #data = {'A':49,'B':-56,'C':7,'D':-48,'E':-6,'F':20,'G':96} # y > z
+    data= {'A':0,'B':126,'C':-70,'D':-60,'E':54,'F':-40,'G':36} # z > t
 
     pros, cons, neutral = preprocess_data(data)
 
@@ -252,6 +321,10 @@ if __name__ == "__main__":
     # Question 3
     result_q3 = m_to_one_tradeoffs(data, pros, cons)
     print(f"Result m_to_one_tradeoffs: {result_q3}")
+
+    # Question 4
+    result_q4 = m_to_one_or_one_to_m_tradeoffs(data, pros, cons)
+    print(f"Result m_to_one_or_one_to_m_tradeoffs: {result_q4}")
 
 
 
