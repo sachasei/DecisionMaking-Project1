@@ -60,5 +60,9 @@ for i in range(1, len(score_final_all)):
 #print(diff_dict)
 
 
-pros,cons,neutral = pr.preprocess_data(diff_dict["La Motte Picquet-Grenelle (Ligne 10)"])
-print(pr.m_to_one_or_one_to_m_tradeoffs(diff_dict["La Motte Picquet-Grenelle (Ligne 10)"], pros, cons))
+for entry in diff_dict.keys():
+    print(f"Trade-offs for station: {entry}")
+    pros,cons,neutral = pr.preprocess_data(diff_dict[entry])
+    tradeoffs = pr.m_to_one_or_one_to_m_tradeoffs(diff_dict[entry], pros, cons)
+    print(tradeoffs)
+    print("\n")
