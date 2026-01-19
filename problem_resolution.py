@@ -243,6 +243,7 @@ def m_to_one_or_one_to_m_tradeoffs(data, pros, cons):
     u = model.addVars(I, J, vtype=GRB.BINARY, name="u")  # Pro i couvre Con j (1-vs-m)
     v = model.addVars(I, J, vtype=GRB.BINARY, name="v")  # Con j couvert par Pros i (m-vs-1)
     t = model.addVars(N_star, vtype=GRB.BINARY, name="t") # Pivot de l'argument
+    e = model.addVar(vtype=GRB.BINARY, name="e")         # Indicateur d'existence
 
     # 1. Contraintes de structure (Partitionnement) [cite: 711-714]
     for i in I:
@@ -263,20 +264,20 @@ def m_to_one_or_one_to_m_tradeoffs(data, pros, cons):
     for i in I:
         # Type 1-vs-m : Pro i + somme des Cons j associés
         strength_1m = data[i] + gp.quicksum(data[j] * u[i, j] for j in J)
-        model.addConstr(strength_1m >= -M_val * (1 - t[i]))
+        model.addConstr(strength_1m >= -M_val * (1 - t[i]) - M_val * (1 - e))
 
     for j in J:
         # Type m-vs-1 : Con j + somme des Pros i associés
         strength_m1 = data[j] + gp.quicksum(data[i] * v[i, j] for i in I)
-        model.addConstr(strength_m1 >= -M_val * (1 - t[j]))
+        model.addConstr(strength_m1 >= -M_val * (1 - t[j]) - M_val * (1 - e))
 
-    # 3. Objectif : Maximiser une constante (1)
-    model.setObjective(1, GRB.MAXIMIZE)
+    # 3. Objectif : Maximiser l'existence, puis minimiser le nombre de pivots (groupes) [cite: 760]
+    # Minimiser t_k permet d'avoir des explications plus courtes et concises [cite: 382, 500]
+    model.setObjective(1000 * e - gp.quicksum(t[k] for k in N_star), GRB.MAXIMIZE)
     model.optimize()
     
-    # Check solution status
-    if model.status == GRB.INFEASIBLE or model.status == GRB.INF_OR_UNBD:
-        return 'certificate of non-existence'
+    if e.X < 0.5 or model.status == GRB.INFEASIBLE or model.status == GRB.INF_OR_UNBD:
+        return 'certificate of non-existence'  # Certificat de non-existence [cite: 34, 709]
 
     # Extraction et formatage selon votre exemple
     results = []
