@@ -198,3 +198,8 @@ for i in range(0, 4, 2):
     y2 = random_indices[i+1]
     explanation(df, y1, y2)
     
+
+
+
+df.to_csv('dataset/breastcancer_with_scores.csv', index=False)
+    
