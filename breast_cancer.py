@@ -201,5 +201,16 @@ for i in range(0, 4, 2):
 
 
 
-df.to_csv('dataset/breastcancer_with_scores.csv', index=False)
-    
+# Exemple entre les 2 meilleurs échantillons: aucune explication possible.
+#C'est du au fait que les coefficients sont appris sur des données scalées, et que les scores sont très proches.
+explanation(df, 597, 277)   
+data = diff_dict(df, 597, 277)
+pros, cons, neutral = pr.preprocess_data(data)
+print(f'\nAspects positifs (pros) pour l\'échantillon 597:')
+for p in pros:
+    print(f' - {p}: {data[p]:.6f}')
+print(f'\nAspects négatifs (cons) pour l\'échantillon 597:')
+for c in cons:
+    print(f' - {c}: {data[c]:.6f}')     
+
+ 
