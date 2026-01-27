@@ -55,8 +55,28 @@ for i in range(1, len(score_final_all)):
         row_diffs[col] = float(round(val_diff, 3))
     
     diff_dict[station_name] = row_diffs
+    
+    
 
-# 5. Affichage d'un exemple pour vérifier
+
+# 5. Construction du 2ème dictionnaire des différences (x - y)
+diff_dict_2 = {}
+
+for i in range(0, len(score_final_all)-1):
+    current_row = score_final_all.iloc[i]
+    after_row = score_final_all.iloc[i+1]
+    comparison_name = current_row['Metro station'] + " vs " + after_row['Metro station']
+    
+    # Calcul des différences : Ligne_i - Ligne_i+1
+    row_diffs = {}
+    for col in criteria_cols:
+        val_diff = current_row[col] - after_row[col]
+        # On force en float pour la compatibilité JSON et on arrondit
+        row_diffs[col] = float(round(val_diff, 3))
+    
+    diff_dict_2[comparison_name] = row_diffs
+
+# 6. Affichage d'un exemple pour vérifier
 #print(diff_dict)
 
 
@@ -64,5 +84,12 @@ for entry in diff_dict.keys():
     print(f"Trade-offs for station: {entry}")
     pros,cons,neutral = pr.preprocess_data(diff_dict[entry])
     tradeoffs = pr.m_to_one_or_one_to_m_tradeoffs(diff_dict[entry], pros, cons)
+    print(tradeoffs)
+    print("\n")
+    
+for entry in diff_dict_2.keys():
+    print(f"Trade-offs for station: {entry}")
+    pros,cons,neutral = pr.preprocess_data(diff_dict_2[entry])
+    tradeoffs = pr.m_to_one_or_one_to_m_tradeoffs(diff_dict_2[entry], pros, cons)
     print(tradeoffs)
     print("\n")
