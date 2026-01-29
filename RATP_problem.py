@@ -22,7 +22,6 @@ for col, weight in zip(numeric_columns, weights):
 # 5. Affichage et sauvegarde
 score_final=data[['Metro station', 'Score_Final']].sort_values(by='Score_Final', ascending=False)
 score_final_all = data.sort_values(by='Score_Final', ascending=False)
-score_final_all.to_csv('dataset/RATP_score_final.csv', index=False, sep=';')
 
 
 
